@@ -17,9 +17,9 @@ Interactive dashboard for sales forecasting and analytics for chemical supply co
 - **Deployment**: Streamlit Cloud
 
 ## Access
-This dashboard is deployed at: [Your App URL]
+This dashboard is deployed at: [App URL]
 
-For access, contact: [Your Email]
+For access, contact: [madimkhbt@gmail.com]
 
 ## Data Sources
 - Historical sales data: BigQuery `sales_analytics` dataset
@@ -31,7 +31,7 @@ For access, contact: [Your Email]
 - No sensitive data in repository
 
 ## Development Team
-- Data Science: [Your Name]
+- Data Science: [Madi Mukhambetov]
 - Stakeholders: Sales Team, Management
 
 ## Last Updated
