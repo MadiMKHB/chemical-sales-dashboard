@@ -1,91 +1,61 @@
 import streamlit as st
-import pandas as pd
-import plotly.graph_objects as go
-from google.cloud import bigquery
-from google.oauth2 import service_account
-import json
+from pages.overview_page import render_overview_page
+from pages.customers_page import render_customers_page
 
-# Page config
+# Page configuration - must be first Streamlit command
 st.set_page_config(
     page_title="Chemical Sales Dashboard",
     page_icon="🧪",
-    layout="wide"
+    layout="wide",  # Use full screen width
+    initial_sidebar_state="collapsed"  # Start with sidebar closed
 )
 
+# Application title with emoji for visual appeal
 st.title("🧪 Chemical Sales Dashboard")
 
-# Create connection to BigQuery
-@st.cache_resource
-def init_connection():
-    try:
-        credentials = service_account.Credentials.from_service_account_info(
-            st.secrets["gcp_service_account"]
-        )
-        client = bigquery.Client(credentials=credentials)
-        return client
-    except Exception as e:
-        st.error(f"Failed to connect to BigQuery: {e}")
-        return None
+# Create navigation tabs
+# Each tab represents a major section of the dashboard
+tab1, tab2, tab3, tab4, tab5 = st.tabs([
+    "📊 Overview",      # KPIs and trends
+    "📈 Predictions",   # Sales forecasting
+    "👥 Customers",     # Customer analytics
+    "📦 Products",      # Product performance
+    "🛒 Basket"         # Basket analysis
+])
 
-# Load KPI data
-@st.cache_data(ttl=600)
-def load_kpi_data():
-    client = init_connection()
-    if client:
-        query = """
-        SELECT *
-        FROM `ml-goldman-hotels-vit-vertex.sales_analytics.kpi_summary`
-        ORDER BY report_month DESC
-        LIMIT 1
-        """
-        df = client.query(query).to_dataframe()
-        return df
-    return pd.DataFrame()
-
-# Main app
-tab1, tab2, tab3 = st.tabs(["📊 Overview", "📈 Predictions", "👥 Customers"])
-
+# Render content for each tab
 with tab1:
-    st.header("Key Performance Indicators")
-    
-    # Load data
-    kpi_df = load_kpi_data()
-    
-    if not kpi_df.empty:
-        col1, col2, col3, col4 = st.columns(4)
-        
-        with col1:
-            st.metric(
-                "Total Revenue",
-                f"${kpi_df['total_revenue'].iloc[0]:,.0f}",
-                f"{kpi_df['revenue_growth_mom_pct'].iloc[0]:.1f}%"
-            )
-        
-        with col2:
-            st.metric(
-                "Total Orders",
-                f"{kpi_df['total_orders'].iloc[0]:,}",
-                f"{kpi_df['orders_growth_mom_pct'].iloc[0]:.1f}%"
-            )
-        
-        with col3:
-            st.metric(
-                "Active Customers",
-                f"{kpi_df['active_customers'].iloc[0]}"
-            )
-        
-        with col4:
-            st.metric(
-                "Active Products",
-                f"{kpi_df['active_products'].iloc[0]}"
-            )
-    else:
-        st.info("Connect to BigQuery to see real data")
+    # Overview page with KPIs
+    render_overview_page()
 
 with tab2:
+    # Predictions page (to be implemented)
     st.header("Sales Predictions")
-    st.info("Prediction graph coming soon...")
+    st.info("Coming soon: Historical vs Predicted sales graph with customer/product selection")
+    # TODO: Add render_predictions_page() when ready
 
 with tab3:
-    st.header("Customer Analytics")
-    st.info("Customer details coming soon...")
+    # Customer analytics page
+    render_customers_page()
+
+with tab4:
+    # Products page (to be implemented)
+    st.header("Product Analytics")
+    st.info("Coming soon: Product rankings, seasonality, and performance metrics")
+    # TODO: Add render_products_page() when ready
+
+with tab5:
+    # Basket analysis page (to be implemented)
+    st.header("Basket Analysis")
+    st.info("Coming soon: Product associations and bundling opportunities")
+    # TODO: Add render_basket_page() when ready
+
+# Footer with metadata
+st.markdown("---")
+st.markdown("*Dashboard refreshes weekly via scheduled BigQuery queries. "
+           "Data sourced from Vertex AI ML pipeline.*")
+
+# Sidebar (if needed in future)
+# with st.sidebar:
+#     st.header("Filters")
+#     # Add global filters here
