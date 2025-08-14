@@ -437,19 +437,26 @@ def create_penetration_scatter_existing(product_data):
     if product_data.empty:
         return go.Figure()
     
+    # Convert pandas Series to lists for Plotly compatibility
+    x_data = product_data['customer_penetration_pct'].tolist()
+    y_data = product_data['total_revenue_all_time'].tolist()
+    size_data = (product_data['total_quantity_all_time'] / 50).tolist()
+    color_data = product_data['quantity_growth_pct'].fillna(0).tolist()  # Fill NaN with 0
+    text_data = product_data['product_name'].tolist()
+    
     fig = go.Figure(data=go.Scatter(
-        x=product_data['customer_penetration_pct'],
-        y=product_data['total_revenue_all_time'],
+        x=x_data,
+        y=y_data,
         mode='markers',
         marker=dict(
-            size=product_data['total_quantity_all_time']/50,  # Size by quantity
-            color=product_data['quantity_growth_pct'],  # Color by growth
+            size=size_data,  # Size by quantity (converted to list)
+            color=color_data,  # Color by growth (converted to list)
             colorscale='RdYlGn',
             colorbar=dict(title="Growth Rate (%)"),
             sizemode='diameter',
             sizemin=4
         ),
-        text=product_data['product_name'],
+        text=text_data,
         hovertemplate='<b>%{text}</b><br>Penetration: %{x:.1f}%<br>Revenue: ₽%{y:,.0f}<br>Growth: %{marker.color:.1f}%<extra></extra>'
     ))
     
