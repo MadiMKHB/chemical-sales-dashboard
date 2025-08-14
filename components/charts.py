@@ -738,3 +738,344 @@ def create_confidence_vs_support_scatter(basket_data):
     )
     
     return fig
+
+"""
+Add these functions to components/charts.py for enhanced overview features
+"""
+import plotly.graph_objects as go
+import pandas as pd
+import numpy as np
+from datetime import datetime
+
+def create_month_comparison_radar(data, month_1, month_2):
+    """Create radar chart comparing two months across key metrics."""
+    if data.empty:
+        return go.Figure()
+    
+    # Get data for both months
+    m1_data = data[data['month_label_display'] == month_1]
+    m2_data = data[data['month_label_display'] == month_2]
+    
+    if m1_data.empty or m2_data.empty:
+        return go.Figure()
+    
+    m1_data = m1_data.iloc[0]
+    m2_data = m2_data.iloc[0]
+    
+    # Define metrics for comparison (normalize to 0-100 scale)
+    metrics = ['Revenue', 'Orders', 'Customers', 'Products']
+    
+    # Normalize values to percentage of maximum in dataset
+    revenue_max = data['total_revenue'].max()
+    orders_max = data['total_orders'].max()
+    customers_max = data['active_customers'].max()
+    products_max = data['active_products'].max()
+    
+    m1_values = [
+        (m1_data['total_revenue'] / revenue_max) * 100,
+        (m1_data['total_orders'] / orders_max) * 100,
+        (m1_data['active_customers'] / customers_max) * 100,
+        (m1_data['active_products'] / products_max) * 100
+    ]
+    
+    m2_values = [
+        (m2_data['total_revenue'] / revenue_max) * 100,
+        (m2_data['total_orders'] / orders_max) * 100,
+        (m2_data['active_customers'] / customers_max) * 100,
+        (m2_data['active_products'] / products_max) * 100
+    ]
+    
+    fig = go.Figure()
+    
+    # Add traces for both months
+    fig.add_trace(go.Scatterpolar(
+        r=m1_values,
+        theta=metrics,
+        fill='toself',
+        name=month_1,
+        line=dict(color='#FF6B35', width=2),
+        fillcolor='rgba(255, 107, 53, 0.1)'
+    ))
+    
+    fig.add_trace(go.Scatterpolar(
+        r=m2_values,
+        theta=metrics,
+        fill='toself',
+        name=month_2,
+        line=dict(color='#4A90E2', width=2),
+        fillcolor='rgba(74, 144, 226, 0.1)'
+    ))
+    
+    fig.update_layout(
+        polar=dict(
+            radialaxis=dict(
+                visible=True,
+                range=[0, 100],
+                ticksuffix="%",
+                gridcolor='rgba(255,255,255,0.1)'
+            ),
+            angularaxis=dict(
+                gridcolor='rgba(255,255,255,0.1)'
+            )
+        ),
+        title=f"Performance Comparison: {month_1} vs {month_2}",
+        template='plotly_dark',
+        height=400,
+        showlegend=True,
+        legend=dict(
+            orientation="h",
+            yanchor="bottom",
+            y=1.02,
+            xanchor="right",
+            x=1
+        )
+    )
+    
+    return fig
+
+def create_comparison_metrics_table(data, month_1, month_2):
+    """Create detailed comparison table between two months."""
+    if data.empty:
+        return pd.DataFrame()
+    
+    m1_data = data[data['month_label_display'] == month_1]
+    m2_data = data[data['month_label_display'] == month_2]
+    
+    if m1_data.empty or m2_data.empty:
+        return pd.DataFrame()
+    
+    m1_data = m1_data.iloc[0]
+    m2_data = m2_data.iloc[0]
+    
+    # Calculate differences
+    revenue_diff = ((m2_data['total_revenue'] - m1_data['total_revenue']) / m1_data['total_revenue']) * 100
+    orders_diff = ((m2_data['total_orders'] - m1_data['total_orders']) / m1_data['total_orders']) * 100
+    customers_diff = ((m2_data['active_customers'] - m1_data['active_customers']) / m1_data['active_customers']) * 100
+    products_diff = ((m2_data['active_products'] - m1_data['active_products']) / m1_data['active_products']) * 100
+    
+    comparison_df = pd.DataFrame({
+        'Metric': ['Revenue', 'Orders', 'Customers', 'Products'],
+        month_1: [
+            f"₽{m1_data['total_revenue']:,.0f}",
+            f"{m1_data['total_orders']:,}",
+            f"{m1_data['active_customers']:,}",
+            f"{m1_data['active_products']:,}"
+        ],
+        month_2: [
+            f"₽{m2_data['total_revenue']:,.0f}",
+            f"{m2_data['total_orders']:,}",
+            f"{m2_data['active_customers']:,}",
+            f"{m2_data['active_products']:,}"
+        ],
+        'Change': [
+            f"{revenue_diff:+.1f}%",
+            f"{orders_diff:+.1f}%",
+            f"{customers_diff:+.1f}%",
+            f"{products_diff:+.1f}%"
+        ],
+        'Trend': [
+            "📈" if revenue_diff > 0 else "📉" if revenue_diff < 0 else "➡️",
+            "📈" if orders_diff > 0 else "📉" if orders_diff < 0 else "➡️",
+            "📈" if customers_diff > 0 else "📉" if customers_diff < 0 else "➡️",
+            "📈" if products_diff > 0 else "📉" if products_diff < 0 else "➡️"
+        ]
+    })
+    
+    return comparison_df
+
+def generate_smart_insights(kpi_data, customer_data=None, product_data=None):
+    """Generate AI-style business insights from data."""
+    insights = []
+    
+    if kpi_data.empty:
+        return ["📊 Insufficient data for insights generation"]
+    
+    try:
+        # Sort by date for trend analysis
+        kpi_data = kpi_data.sort_values('report_month')
+        
+        # 1. PERFORMANCE INSIGHTS
+        best_month = kpi_data.loc[kpi_data['total_revenue'].idxmax()]
+        current_month = kpi_data.iloc[-1]  # Most recent
+        
+        insights.append(f"🏆 **Peak performance:** {best_month['month_label_display']} achieved highest revenue of ₽{best_month['total_revenue']:,.0f}")
+        
+        # 2. GROWTH TREND INSIGHTS
+        if len(kpi_data) >= 3:
+            last_3_months = kpi_data.tail(3)
+            avg_growth = last_3_months['revenue_growth_mom_pct'].mean()
+            
+            if avg_growth > 15:
+                insights.append(f"🚀 **Exceptional growth:** Averaging {avg_growth:.1f}% monthly growth over last 3 months")
+            elif avg_growth > 5:
+                insights.append(f"📈 **Solid momentum:** Steady {avg_growth:.1f}% average growth trend continues")
+            elif avg_growth > 0:
+                insights.append(f"📊 **Stable growth:** Consistent {avg_growth:.1f}% monthly increases")
+            elif avg_growth > -10:
+                insights.append(f"⚠️ **Soft performance:** Revenue declining {abs(avg_growth):.1f}% monthly - action needed")
+            else:
+                insights.append(f"🔴 **Critical decline:** {abs(avg_growth):.1f}% monthly drop requires immediate attention")
+        
+        # 3. EFFICIENCY INSIGHTS
+        total_revenue = kpi_data['total_revenue'].sum()
+        total_customers = kpi_data['active_customers'].sum()
+        avg_revenue_per_customer = total_revenue / total_customers if total_customers > 0 else 0
+        
+        if avg_revenue_per_customer > 50000:
+            insights.append(f"💰 **High-value customers:** Average ₽{avg_revenue_per_customer:,.0f} per customer shows premium positioning")
+        elif avg_revenue_per_customer > 25000:
+            insights.append(f"💰 **Solid monetization:** ₽{avg_revenue_per_customer:,.0f} revenue per customer indicates healthy business")
+        else:
+            insights.append(f"💡 **Growth opportunity:** ₽{avg_revenue_per_customer:,.0f} per customer suggests upselling potential")
+        
+        # 4. SEASONAL INSIGHTS
+        if len(kpi_data) >= 6:
+            kpi_data['month_num'] = pd.to_datetime(kpi_data['report_month']).dt.month
+            monthly_avg = kpi_data.groupby('month_num')['total_revenue'].mean()
+            
+            if len(monthly_avg) >= 3:
+                peak_month_num = monthly_avg.idxmax()
+                peak_revenue = monthly_avg.max()
+                low_month_num = monthly_avg.idxmin()
+                low_revenue = monthly_avg.min()
+                
+                month_names = {1: 'January', 2: 'February', 3: 'March', 4: 'April', 5: 'May', 6: 'June',
+                              7: 'July', 8: 'August', 9: 'September', 10: 'October', 11: 'November', 12: 'December'}
+                
+                seasonal_variance = ((peak_revenue - low_revenue) / low_revenue) * 100
+                
+                if seasonal_variance > 50:
+                    insights.append(f"📅 **Strong seasonality:** {month_names.get(peak_month_num, peak_month_num)} peaks at ₽{peak_revenue:,.0f} ({seasonal_variance:.0f}% above low season)")
+                elif seasonal_variance > 20:
+                    insights.append(f"📅 **Moderate seasonality:** {month_names.get(peak_month_num, peak_month_num)} shows {seasonal_variance:.0f}% revenue boost")
+        
+        # 5. VOLUME vs VALUE INSIGHTS
+        latest_data = kpi_data.iloc[-1]
+        avg_order_value = latest_data['total_revenue'] / latest_data['total_orders'] if latest_data['total_orders'] > 0 else 0
+        
+        if avg_order_value > 5000:
+            insights.append(f"🎯 **Premium positioning:** ₽{avg_order_value:,.0f} average order value indicates high-value transactions")
+        elif avg_order_value < 1000:
+            insights.append(f"💡 **Bundle opportunity:** ₽{avg_order_value:,.0f} average order suggests cross-selling potential")
+        
+        # 6. CUSTOMER CONCENTRATION INSIGHTS
+        if customer_data is not None and not customer_data.empty:
+            top_3_revenue = customer_data.head(3)['total_lifetime_revenue'].sum()
+            total_customer_revenue = customer_data['total_lifetime_revenue'].sum()
+            concentration = (top_3_revenue / total_customer_revenue) * 100 if total_customer_revenue > 0 else 0
+            
+            if concentration > 60:
+                insights.append(f"⚠️ **High concentration risk:** Top 3 customers represent {concentration:.0f}% of revenue - diversification needed")
+            elif concentration > 40:
+                insights.append(f"📊 **Moderate concentration:** Top 3 customers drive {concentration:.0f}% of business - monitor closely")
+            else:
+                insights.append(f"✅ **Balanced portfolio:** Well-diversified customer base with {concentration:.0f}% top-customer concentration")
+        
+        # 7. RECENT PERFORMANCE ALERTS
+        if len(kpi_data) >= 2:
+            latest = kpi_data.iloc[-1]
+            previous = kpi_data.iloc[-2]
+            
+            latest_growth = latest.get('revenue_growth_mom_pct', 0)
+            
+            if latest_growth > 25:
+                insights.append(f"🎉 **Outstanding month:** {latest['month_label_display']} delivered {latest_growth:.1f}% growth - investigate success factors")
+            elif latest_growth < -20:
+                insights.append(f"🔔 **Performance alert:** {latest['month_label_display']} declined {abs(latest_growth):.1f}% - immediate review required")
+        
+    except Exception as e:
+        insights.append(f"📊 Data analysis in progress - insights will appear as more data becomes available")
+    
+    # Limit to most relevant insights
+    return insights[:6]
+
+def create_performance_gauge(kpi_data):
+    """Create gauge chart showing overall performance score."""
+    if kpi_data.empty:
+        return go.Figure()
+    
+    latest_data = kpi_data.iloc[-1]
+    
+    # Calculate performance score (0-100)
+    score = 0
+    
+    # Revenue growth component (0-40 points)
+    growth_rate = latest_data.get('revenue_growth_mom_pct', 0)
+    if growth_rate > 20:
+        score += 40
+    elif growth_rate > 10:
+        score += 30
+    elif growth_rate > 0:
+        score += 20
+    elif growth_rate > -10:
+        score += 10
+    
+    # Customer base component (0-30 points)
+    customers = latest_data.get('active_customers', 0)
+    if customers > 100:
+        score += 30
+    elif customers > 50:
+        score += 25
+    elif customers > 20:
+        score += 20
+    elif customers > 10:
+        score += 15
+    else:
+        score += 10
+    
+    # Product diversity component (0-30 points)
+    products = latest_data.get('active_products', 0)
+    if products > 80:
+        score += 30
+    elif products > 50:
+        score += 25
+    elif products > 30:
+        score += 20
+    elif products > 10:
+        score += 15
+    else:
+        score += 10
+    
+    # Determine color and status
+    if score >= 80:
+        color, status = "green", "Excellent"
+    elif score >= 60:
+        color, status = "yellow", "Good"
+    elif score >= 40:
+        color, status = "orange", "Fair"
+    else:
+        color, status = "red", "Needs Attention"
+    
+    fig = go.Figure(go.Indicator(
+        mode="gauge+number+delta",
+        value=score,
+        domain={'x': [0, 1], 'y': [0, 1]},
+        title={'text': f"Performance Score<br><span style='font-size:16px'>{status}</span>"},
+        delta={'reference': 70, 'increasing': {'color': "green"}, 'decreasing': {'color': "red"}},
+        gauge={
+            'axis': {'range': [None, 100], 'tickwidth': 1, 'tickcolor': "white"},
+            'bar': {'color': color, 'thickness': 0.2},
+            'bgcolor': "rgba(0,0,0,0)",
+            'borderwidth': 2,
+            'bordercolor': "white",
+            'steps': [
+                {'range': [0, 40], 'color': 'rgba(255,0,0,0.2)'},
+                {'range': [40, 60], 'color': 'rgba(255,165,0,0.2)'},
+                {'range': [60, 80], 'color': 'rgba(255,255,0,0.2)'},
+                {'range': [80, 100], 'color': 'rgba(0,255,0,0.2)'}
+            ],
+            'threshold': {
+                'line': {'color': "white", 'width': 4},
+                'thickness': 0.75,
+                'value': 90
+            }
+        }
+    ))
+    
+    fig.update_layout(
+        template='plotly_dark',
+        height=300,
+        margin=dict(l=20, r=20, t=40, b=20)
+    )
+    
+    return fig
