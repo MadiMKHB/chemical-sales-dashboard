@@ -35,8 +35,7 @@ with tab3:
     render_customers_page()
 
 with tab4:
-    st.header("Product Analytics")
-    st.info("Coming soon: Product performance metrics")
+    render_products_page()
 
 # Footer
 st.markdown("---")
