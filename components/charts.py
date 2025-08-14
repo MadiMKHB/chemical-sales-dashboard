@@ -469,3 +469,272 @@ def create_penetration_scatter_existing(product_data):
     )
     
     return fig
+
+"""
+Add these functions to components/charts.py for basket analysis visualizations
+"""
+import plotly.graph_objects as go
+import plotly.express as px
+import pandas as pd
+import numpy as np
+
+def create_association_network(basket_data, min_lift=1.2):
+    """Create network visualization of product associations."""
+    if basket_data.empty:
+        return go.Figure()
+    
+    # Filter for meaningful associations
+    strong_associations = basket_data[basket_data['lift'] >= min_lift]
+    
+    if strong_associations.empty:
+        strong_associations = basket_data.head(10)  # Show top 10 if no strong associations
+    
+    # Create network data
+    edges = []
+    nodes = set()
+    
+    for _, row in strong_associations.iterrows():
+        product_a = row['product_a_name'] or row['product_a']
+        product_b = row['product_b_name'] or row['product_b']
+        
+        edges.append({
+            'source': product_a,
+            'target': product_b,
+            'weight': row['lift'],
+            'confidence': max(row['confidence_a_to_b_pct'], row['confidence_b_to_a_pct'])
+        })
+        nodes.add(product_a)
+        nodes.add(product_b)
+    
+    # Create simple network visualization using scatter plot
+    fig = go.Figure()
+    
+    # For simplicity, arrange nodes in a circle
+    n_nodes = len(nodes)
+    node_list = list(nodes)
+    
+    if n_nodes > 0:
+        angles = np.linspace(0, 2*np.pi, n_nodes, endpoint=False)
+        node_x = np.cos(angles)
+        node_y = np.sin(angles)
+        
+        # Add edges
+        for edge in edges:
+            source_idx = node_list.index(edge['source'])
+            target_idx = node_list.index(edge['target'])
+            
+            fig.add_trace(go.Scatter(
+                x=[node_x[source_idx], node_x[target_idx], None],
+                y=[node_y[source_idx], node_y[target_idx], None],
+                mode='lines',
+                line=dict(width=edge['weight'], color='rgba(255,107,53,0.6)'),
+                hoverinfo='skip',
+                showlegend=False
+            ))
+        
+        # Add nodes
+        fig.add_trace(go.Scatter(
+            x=node_x,
+            y=node_y,
+            mode='markers+text',
+            marker=dict(
+                size=20,
+                color='#4A90E2',
+                line=dict(width=2, color='white')
+            ),
+            text=node_list,
+            textposition='middle center',
+            textfont=dict(size=10, color='white'),
+            hovertemplate='<b>%{text}</b><extra></extra>',
+            showlegend=False
+        ))
+    
+    fig.update_layout(
+        title="Product Association Network",
+        showlegend=False,
+        hovermode='closest',
+        margin=dict(b=20,l=5,r=5,t=40),
+        annotations=[
+            dict(
+                text="Line thickness = Association strength",
+                showarrow=False,
+                xref="paper", yref="paper",
+                x=0.005, y=-0.002,
+                xanchor="left", yanchor="bottom",
+                font=dict(color="gray", size=12)
+            )
+        ],
+        xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
+        yaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
+        template='plotly_dark',
+        height=500
+    )
+    
+    return fig
+
+def create_confidence_matrix(basket_data):
+    """Create heatmap of confidence scores between products."""
+    if basket_data.empty:
+        return go.Figure()
+    
+    # Get top products
+    top_products = set()
+    for _, row in basket_data.head(20).iterrows():
+        top_products.add(row['product_a_name'] or row['product_a'])
+        top_products.add(row['product_b_name'] or row['product_b'])
+    
+    top_products = list(top_products)
+    
+    # Create confidence matrix
+    matrix = np.zeros((len(top_products), len(top_products)))
+    
+    for _, row in basket_data.iterrows():
+        prod_a = row['product_a_name'] or row['product_a']
+        prod_b = row['product_b_name'] or row['product_b']
+        
+        if prod_a in top_products and prod_b in top_products:
+            a_idx = top_products.index(prod_a)
+            b_idx = top_products.index(prod_b)
+            
+            matrix[a_idx][b_idx] = row['confidence_a_to_b_pct']
+            matrix[b_idx][a_idx] = row['confidence_b_to_a_pct']
+    
+    fig = go.Figure(data=go.Heatmap(
+        z=matrix,
+        x=top_products,
+        y=top_products,
+        colorscale='RdYlBu_r',
+        colorbar=dict(title="Confidence %"),
+        hovertemplate='<b>%{y}</b> → <b>%{x}</b><br>Confidence: %{z:.1f}%<extra></extra>'
+    ))
+    
+    fig.update_layout(
+        title="Cross-Sell Confidence Matrix",
+        xaxis_title="Recommended Product",
+        yaxis_title="Base Product",
+        height=500,
+        template='plotly_dark'
+    )
+    
+    return fig
+
+def create_bundle_opportunity_chart(bundle_data):
+    """Create bar chart of top bundle opportunities."""
+    if bundle_data.empty:
+        return go.Figure()
+    
+    # Create labels combining product names
+    bundle_data['bundle_label'] = bundle_data.apply(
+        lambda row: f"{row['product_a_name']} + {row['product_b_name']}", axis=1
+    )
+    
+    fig = go.Figure(data=[
+        go.Bar(
+            y=bundle_data['bundle_label'],
+            x=bundle_data['bundle_score'],
+            orientation='h',
+            marker_color=bundle_data['bundle_score'],
+            marker_colorscale='RdYlGn',
+            text=bundle_data['bundle_score'].astype(str) + ' pts',
+            textposition='inside',
+            hovertemplate='<b>%{y}</b><br>Bundle Score: %{x} points<br>Lift: %{customdata:.1f}x<extra></extra>',
+            customdata=bundle_data['lift']
+        )
+    ])
+    
+    fig.update_layout(
+        title="Top Bundle Opportunities",
+        xaxis_title="Bundle Score (0-100)",
+        yaxis_title="Product Combination",
+        height=500,
+        template='plotly_dark',
+        margin=dict(l=250)  # More space for product names
+    )
+    
+    return fig
+
+def create_category_cross_sell_pie(category_stats):
+    """Create pie chart showing cross-sell by category relationships."""
+    if category_stats.empty:
+        return go.Figure()
+    
+    fig = go.Figure(data=[go.Pie(
+        labels=category_stats['category_relationship'],
+        values=category_stats['pair_count'],
+        hole=.3,
+        textposition='inside',
+        textinfo='percent+label',
+        hovertemplate='<b>%{label}</b><br>Pairs: %{value}<br>Avg Lift: %{customdata:.2f}x<extra></extra>',
+        customdata=category_stats['avg_lift']
+    )])
+    
+    fig.update_layout(
+        title="Cross-Sell Patterns by Category",
+        height=400,
+        template='plotly_dark',
+        showlegend=True
+    )
+    
+    return fig
+
+def create_lift_distribution_histogram(basket_data):
+    """Create histogram of lift values distribution."""
+    if basket_data.empty:
+        return go.Figure()
+    
+    fig = go.Figure(data=[
+        go.Histogram(
+            x=basket_data['lift'],
+            nbinsx=20,
+            marker_color='#4A90E2',
+            opacity=0.7,
+            hovertemplate='Lift Range: %{x}<br>Count: %{y}<extra></extra>'
+        )
+    ])
+    
+    # Add vertical line at lift = 1 (independence)
+    fig.add_vline(x=1, line_dash="dash", line_color="red", 
+                  annotation_text="Independent (Lift = 1)")
+    
+    fig.update_layout(
+        title="Distribution of Association Strength (Lift)",
+        xaxis_title="Lift Value",
+        yaxis_title="Number of Product Pairs",
+        height=400,
+        template='plotly_dark'
+    )
+    
+    return fig
+
+def create_confidence_vs_support_scatter(basket_data):
+    """Create scatter plot of confidence vs support with lift as color."""
+    if basket_data.empty:
+        return go.Figure()
+    
+    # Use higher confidence direction for each pair
+    basket_data['max_confidence'] = basket_data[['confidence_a_to_b_pct', 'confidence_b_to_a_pct']].max(axis=1)
+    
+    fig = go.Figure(data=go.Scatter(
+        x=basket_data['support_pct'],
+        y=basket_data['max_confidence'],
+        mode='markers',
+        marker=dict(
+            size=10,
+            color=basket_data['lift'],
+            colorscale='RdYlGn',
+            colorbar=dict(title="Lift"),
+            line=dict(width=1, color='white')
+        ),
+        text=basket_data.apply(lambda row: f"{row['product_a_name']} + {row['product_b_name']}", axis=1),
+        hovertemplate='<b>%{text}</b><br>Support: %{x:.1f}%<br>Confidence: %{y:.1f}%<br>Lift: %{marker.color:.2f}x<extra></extra>'
+    ))
+    
+    fig.update_layout(
+        title="Market Basket Analysis: Support vs Confidence",
+        xaxis_title="Support (% of customers buying both)",
+        yaxis_title="Confidence (% probability)",
+        height=500,
+        template='plotly_dark'
+    )
+    
+    return fig
