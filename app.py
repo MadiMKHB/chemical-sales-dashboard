@@ -5,6 +5,7 @@ Chemical Sales Dashboard with modular structure.
 import streamlit as st
 from pages.overview_page import render_overview_page
 from pages.customers_page import render_customers_page
+from pages.predictions_page import render_predictions_page
 
 # Page configuration
 st.set_page_config(
@@ -27,8 +28,7 @@ with tab1:
     render_overview_page()
 
 with tab2:
-    st.header("Sales Predictions")
-    st.info("Coming soon: Historical vs Predicted sales graph")
+    render_predictions_page()
 
 with tab3:
     render_customers_page()
