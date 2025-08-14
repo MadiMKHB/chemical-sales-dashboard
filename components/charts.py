@@ -740,12 +740,14 @@ def create_confidence_vs_support_scatter(basket_data):
     return fig
 
 """
-Add these functions to components/charts.py for enhanced overview features
+Update components/charts.py - Remove the create_performance_gauge function
+Add this import at the top and add these functions (remove performance gauge)
 """
 import plotly.graph_objects as go
 import pandas as pd
 import numpy as np
 from datetime import datetime
+import random
 
 def create_month_comparison_radar(data, month_1, month_2):
     """Create radar chart comparing two months across key metrics."""
@@ -884,7 +886,7 @@ def create_comparison_metrics_table(data, month_1, month_2):
     return comparison_df
 
 def generate_smart_insights(kpi_data, customer_data=None, product_data=None):
-    """Generate AI-style business insights from data."""
+    """Generate AI-style business insights from data with slight randomization for refresh."""
     insights = []
     
     if kpi_data.empty:
@@ -894,11 +896,19 @@ def generate_smart_insights(kpi_data, customer_data=None, product_data=None):
         # Sort by date for trend analysis
         kpi_data = kpi_data.sort_values('report_month')
         
+        # Add slight randomization for "refresh" effect (vary order and phrasing)
+        insight_variations = []
+        
         # 1. PERFORMANCE INSIGHTS
         best_month = kpi_data.loc[kpi_data['total_revenue'].idxmax()]
         current_month = kpi_data.iloc[-1]  # Most recent
         
-        insights.append(f"🏆 **Peak performance:** {best_month['month_label_display']} achieved highest revenue of ₽{best_month['total_revenue']:,.0f}")
+        performance_phrases = [
+            f"🏆 **Peak performance:** {best_month['month_label_display']} achieved highest revenue of ₽{best_month['total_revenue']:,.0f}",
+            f"🏆 **Revenue record:** {best_month['month_label_display']} set new high with ₽{best_month['total_revenue']:,.0f}",
+            f"🏆 **Best month identified:** {best_month['month_label_display']} delivered peak revenue of ₽{best_month['total_revenue']:,.0f}"
+        ]
+        insight_variations.append(random.choice(performance_phrases))
         
         # 2. GROWTH TREND INSIGHTS
         if len(kpi_data) >= 3:
@@ -906,15 +916,37 @@ def generate_smart_insights(kpi_data, customer_data=None, product_data=None):
             avg_growth = last_3_months['revenue_growth_mom_pct'].mean()
             
             if avg_growth > 15:
-                insights.append(f"🚀 **Exceptional growth:** Averaging {avg_growth:.1f}% monthly growth over last 3 months")
+                growth_phrases = [
+                    f"🚀 **Exceptional growth:** Averaging {avg_growth:.1f}% monthly growth over last 3 months",
+                    f"🚀 **Outstanding momentum:** {avg_growth:.1f}% average monthly increase demonstrates strong trajectory",
+                    f"🚀 **Impressive expansion:** Consistent {avg_growth:.1f}% monthly growth rate maintained"
+                ]
             elif avg_growth > 5:
-                insights.append(f"📈 **Solid momentum:** Steady {avg_growth:.1f}% average growth trend continues")
+                growth_phrases = [
+                    f"📈 **Solid momentum:** Steady {avg_growth:.1f}% average growth trend continues",
+                    f"📈 **Healthy growth:** {avg_growth:.1f}% monthly average shows sustainable expansion",
+                    f"📈 **Positive trajectory:** {avg_growth:.1f}% growth rate indicates strong business health"
+                ]
             elif avg_growth > 0:
-                insights.append(f"📊 **Stable growth:** Consistent {avg_growth:.1f}% monthly increases")
+                growth_phrases = [
+                    f"📊 **Stable growth:** Consistent {avg_growth:.1f}% monthly increases",
+                    f"📊 **Modest gains:** {avg_growth:.1f}% monthly growth maintains positive direction",
+                    f"📊 **Steady progress:** {avg_growth:.1f}% average increase demonstrates stability"
+                ]
             elif avg_growth > -10:
-                insights.append(f"⚠️ **Soft performance:** Revenue declining {abs(avg_growth):.1f}% monthly - action needed")
+                growth_phrases = [
+                    f"⚠️ **Soft performance:** Revenue declining {abs(avg_growth):.1f}% monthly - action needed",
+                    f"⚠️ **Downward trend:** {abs(avg_growth):.1f}% monthly decline requires attention",
+                    f"⚠️ **Performance concern:** {abs(avg_growth):.1f}% monthly drop signals need for strategy review"
+                ]
             else:
-                insights.append(f"🔴 **Critical decline:** {abs(avg_growth):.1f}% monthly drop requires immediate attention")
+                growth_phrases = [
+                    f"🔴 **Critical decline:** {abs(avg_growth):.1f}% monthly drop requires immediate attention",
+                    f"🔴 **Urgent situation:** {abs(avg_growth):.1f}% monthly decline demands swift action",
+                    f"🔴 **Major concern:** {abs(avg_growth):.1f}% monthly decrease needs immediate intervention"
+                ]
+            
+            insight_variations.append(random.choice(growth_phrases))
         
         # 3. EFFICIENCY INSIGHTS
         total_revenue = kpi_data['total_revenue'].sum()
@@ -922,13 +954,27 @@ def generate_smart_insights(kpi_data, customer_data=None, product_data=None):
         avg_revenue_per_customer = total_revenue / total_customers if total_customers > 0 else 0
         
         if avg_revenue_per_customer > 50000:
-            insights.append(f"💰 **High-value customers:** Average ₽{avg_revenue_per_customer:,.0f} per customer shows premium positioning")
+            efficiency_phrases = [
+                f"💰 **High-value customers:** Average ₽{avg_revenue_per_customer:,.0f} per customer shows premium positioning",
+                f"💰 **Premium customer base:** ₽{avg_revenue_per_customer:,.0f} average revenue indicates strong value delivery",
+                f"💰 **Excellent monetization:** ₽{avg_revenue_per_customer:,.0f} per customer demonstrates premium market position"
+            ]
         elif avg_revenue_per_customer > 25000:
-            insights.append(f"💰 **Solid monetization:** ₽{avg_revenue_per_customer:,.0f} revenue per customer indicates healthy business")
+            efficiency_phrases = [
+                f"💰 **Solid monetization:** ₽{avg_revenue_per_customer:,.0f} revenue per customer indicates healthy business",
+                f"💰 **Good customer value:** ₽{avg_revenue_per_customer:,.0f} per customer shows effective sales strategy",
+                f"💰 **Strong performance:** ₽{avg_revenue_per_customer:,.0f} customer average demonstrates solid execution"
+            ]
         else:
-            insights.append(f"💡 **Growth opportunity:** ₽{avg_revenue_per_customer:,.0f} per customer suggests upselling potential")
+            efficiency_phrases = [
+                f"💡 **Growth opportunity:** ₽{avg_revenue_per_customer:,.0f} per customer suggests upselling potential",
+                f"💡 **Expansion potential:** ₽{avg_revenue_per_customer:,.0f} customer average indicates room for growth",
+                f"💡 **Optimization chance:** ₽{avg_revenue_per_customer:,.0f} per customer shows upselling opportunities"
+            ]
         
-        # 4. SEASONAL INSIGHTS
+        insight_variations.append(random.choice(efficiency_phrases))
+        
+        # 4. SEASONAL INSIGHTS (if enough data)
         if len(kpi_data) >= 6:
             kpi_data['month_num'] = pd.to_datetime(kpi_data['report_month']).dt.month
             monthly_avg = kpi_data.groupby('month_num')['total_revenue'].mean()
@@ -945,137 +991,73 @@ def generate_smart_insights(kpi_data, customer_data=None, product_data=None):
                 seasonal_variance = ((peak_revenue - low_revenue) / low_revenue) * 100
                 
                 if seasonal_variance > 50:
-                    insights.append(f"📅 **Strong seasonality:** {month_names.get(peak_month_num, peak_month_num)} peaks at ₽{peak_revenue:,.0f} ({seasonal_variance:.0f}% above low season)")
+                    seasonal_phrases = [
+                        f"📅 **Strong seasonality:** {month_names.get(peak_month_num, peak_month_num)} peaks at ₽{peak_revenue:,.0f} ({seasonal_variance:.0f}% above low season)",
+                        f"📅 **Clear seasonal pattern:** {month_names.get(peak_month_num, peak_month_num)} shows {seasonal_variance:.0f}% peak performance",
+                        f"📅 **Seasonal opportunity:** {month_names.get(peak_month_num, peak_month_num)} delivers {seasonal_variance:.0f}% revenue boost - plan accordingly"
+                    ]
+                    insight_variations.append(random.choice(seasonal_phrases))
                 elif seasonal_variance > 20:
-                    insights.append(f"📅 **Moderate seasonality:** {month_names.get(peak_month_num, peak_month_num)} shows {seasonal_variance:.0f}% revenue boost")
+                    seasonal_phrases = [
+                        f"📅 **Moderate seasonality:** {month_names.get(peak_month_num, peak_month_num)} shows {seasonal_variance:.0f}% revenue boost",
+                        f"📅 **Seasonal trend:** {month_names.get(peak_month_num, peak_month_num)} consistently outperforms by {seasonal_variance:.0f}%",
+                        f"📅 **Monthly pattern:** {month_names.get(peak_month_num, peak_month_num)} demonstrates {seasonal_variance:.0f}% advantage"
+                    ]
+                    insight_variations.append(random.choice(seasonal_phrases))
         
         # 5. VOLUME vs VALUE INSIGHTS
         latest_data = kpi_data.iloc[-1]
         avg_order_value = latest_data['total_revenue'] / latest_data['total_orders'] if latest_data['total_orders'] > 0 else 0
         
         if avg_order_value > 5000:
-            insights.append(f"🎯 **Premium positioning:** ₽{avg_order_value:,.0f} average order value indicates high-value transactions")
+            value_phrases = [
+                f"🎯 **Premium positioning:** ₽{avg_order_value:,.0f} average order value indicates high-value transactions",
+                f"🎯 **Quality over quantity:** ₽{avg_order_value:,.0f} order average shows premium customer focus",
+                f"🎯 **High-ticket sales:** ₽{avg_order_value:,.0f} average order demonstrates value-based selling"
+            ]
+            insight_variations.append(random.choice(value_phrases))
         elif avg_order_value < 1000:
-            insights.append(f"💡 **Bundle opportunity:** ₽{avg_order_value:,.0f} average order suggests cross-selling potential")
+            value_phrases = [
+                f"💡 **Bundle opportunity:** ₽{avg_order_value:,.0f} average order suggests cross-selling potential",
+                f"💡 **Upselling potential:** ₽{avg_order_value:,.0f} order size indicates expansion opportunities",
+                f"💡 **Growth strategy:** ₽{avg_order_value:,.0f} average suggests bundling and cross-sell focus"
+            ]
+            insight_variations.append(random.choice(value_phrases))
         
-        # 6. CUSTOMER CONCENTRATION INSIGHTS
+        # 6. CUSTOMER CONCENTRATION INSIGHTS (if available)
         if customer_data is not None and not customer_data.empty:
             top_3_revenue = customer_data.head(3)['total_lifetime_revenue'].sum()
             total_customer_revenue = customer_data['total_lifetime_revenue'].sum()
             concentration = (top_3_revenue / total_customer_revenue) * 100 if total_customer_revenue > 0 else 0
             
             if concentration > 60:
-                insights.append(f"⚠️ **High concentration risk:** Top 3 customers represent {concentration:.0f}% of revenue - diversification needed")
+                risk_phrases = [
+                    f"⚠️ **High concentration risk:** Top 3 customers represent {concentration:.0f}% of revenue - diversification needed",
+                    f"⚠️ **Customer dependency:** {concentration:.0f}% revenue from top 3 clients creates vulnerability",
+                    f"⚠️ **Portfolio risk:** {concentration:.0f}% concentration in top customers requires mitigation strategy"
+                ]
+                insight_variations.append(random.choice(risk_phrases))
             elif concentration > 40:
-                insights.append(f"📊 **Moderate concentration:** Top 3 customers drive {concentration:.0f}% of business - monitor closely")
+                risk_phrases = [
+                    f"📊 **Moderate concentration:** Top 3 customers drive {concentration:.0f}% of business - monitor closely",
+                    f"📊 **Key account focus:** {concentration:.0f}% revenue from top 3 requires careful management",
+                    f"📊 **Important relationships:** Top 3 customers at {concentration:.0f}% need strategic attention"
+                ]
+                insight_variations.append(random.choice(risk_phrases))
             else:
-                insights.append(f"✅ **Balanced portfolio:** Well-diversified customer base with {concentration:.0f}% top-customer concentration")
+                risk_phrases = [
+                    f"✅ **Balanced portfolio:** Well-diversified customer base with {concentration:.0f}% top-customer concentration",
+                    f"✅ **Healthy distribution:** {concentration:.0f}% top-customer share shows good diversification",
+                    f"✅ **Risk management:** {concentration:.0f}% concentration provides stability and growth potential"
+                ]
+                insight_variations.append(random.choice(risk_phrases))
         
-        # 7. RECENT PERFORMANCE ALERTS
-        if len(kpi_data) >= 2:
-            latest = kpi_data.iloc[-1]
-            previous = kpi_data.iloc[-2]
-            
-            latest_growth = latest.get('revenue_growth_mom_pct', 0)
-            
-            if latest_growth > 25:
-                insights.append(f"🎉 **Outstanding month:** {latest['month_label_display']} delivered {latest_growth:.1f}% growth - investigate success factors")
-            elif latest_growth < -20:
-                insights.append(f"🔔 **Performance alert:** {latest['month_label_display']} declined {abs(latest_growth):.1f}% - immediate review required")
+        # Shuffle insights for variety
+        random.shuffle(insight_variations)
+        insights = insight_variations
         
     except Exception as e:
         insights.append(f"📊 Data analysis in progress - insights will appear as more data becomes available")
     
-    # Limit to most relevant insights
+    # Limit to most relevant insights (5-6)
     return insights[:6]
-
-def create_performance_gauge(kpi_data):
-    """Create gauge chart showing overall performance score."""
-    if kpi_data.empty:
-        return go.Figure()
-    
-    latest_data = kpi_data.iloc[-1]
-    
-    # Calculate performance score (0-100)
-    score = 0
-    
-    # Revenue growth component (0-40 points)
-    growth_rate = latest_data.get('revenue_growth_mom_pct', 0)
-    if growth_rate > 20:
-        score += 40
-    elif growth_rate > 10:
-        score += 30
-    elif growth_rate > 0:
-        score += 20
-    elif growth_rate > -10:
-        score += 10
-    
-    # Customer base component (0-30 points)
-    customers = latest_data.get('active_customers', 0)
-    if customers > 100:
-        score += 30
-    elif customers > 50:
-        score += 25
-    elif customers > 20:
-        score += 20
-    elif customers > 10:
-        score += 15
-    else:
-        score += 10
-    
-    # Product diversity component (0-30 points)
-    products = latest_data.get('active_products', 0)
-    if products > 80:
-        score += 30
-    elif products > 50:
-        score += 25
-    elif products > 30:
-        score += 20
-    elif products > 10:
-        score += 15
-    else:
-        score += 10
-    
-    # Determine color and status
-    if score >= 80:
-        color, status = "green", "Excellent"
-    elif score >= 60:
-        color, status = "yellow", "Good"
-    elif score >= 40:
-        color, status = "orange", "Fair"
-    else:
-        color, status = "red", "Needs Attention"
-    
-    fig = go.Figure(go.Indicator(
-        mode="gauge+number+delta",
-        value=score,
-        domain={'x': [0, 1], 'y': [0, 1]},
-        title={'text': f"Performance Score<br><span style='font-size:16px'>{status}</span>"},
-        delta={'reference': 70, 'increasing': {'color': "green"}, 'decreasing': {'color': "red"}},
-        gauge={
-            'axis': {'range': [None, 100], 'tickwidth': 1, 'tickcolor': "white"},
-            'bar': {'color': color, 'thickness': 0.2},
-            'bgcolor': "rgba(0,0,0,0)",
-            'borderwidth': 2,
-            'bordercolor': "white",
-            'steps': [
-                {'range': [0, 40], 'color': 'rgba(255,0,0,0.2)'},
-                {'range': [40, 60], 'color': 'rgba(255,165,0,0.2)'},
-                {'range': [60, 80], 'color': 'rgba(255,255,0,0.2)'},
-                {'range': [80, 100], 'color': 'rgba(0,255,0,0.2)'}
-            ],
-            'threshold': {
-                'line': {'color': "white", 'width': 4},
-                'thickness': 0.75,
-                'value': 90
-            }
-        }
-    ))
-    
-    fig.update_layout(
-        template='plotly_dark',
-        height=300,
-        margin=dict(l=20, r=20, t=40, b=20)
-    )
-    
-    return fig
