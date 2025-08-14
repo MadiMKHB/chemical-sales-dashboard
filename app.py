@@ -6,6 +6,7 @@ import streamlit as st
 from pages.overview_page import render_overview_page
 from pages.customers_page import render_customers_page
 from pages.predictions_page import render_predictions_page
+from pages.products_page import render_products_page
 
 # Page configuration
 st.set_page_config(
