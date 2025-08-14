@@ -1,6 +1,5 @@
 """
-Update pages/overview_page.py with enhanced features
-Replace your existing render_overview_page function with this enhanced version
+Fixed pages/overview_page.py - Remove performance score, fix refresh, fix navigation
 """
 import streamlit as st
 import pandas as pd
@@ -10,8 +9,7 @@ from components.charts import (
     create_revenue_trend_chart, 
     create_month_comparison_radar,
     create_comparison_metrics_table,
-    generate_smart_insights,
-    create_performance_gauge
+    generate_smart_insights
 )
 
 def render_overview_page():
@@ -27,23 +25,13 @@ def render_overview_page():
             all_kpi_df['report_month']
         ).dt.strftime('%B %Y')
         
-        # Main dashboard layout
-        col1, col2 = st.columns([2, 1])
-        
-        with col1:
-            # Month selector for main KPIs
-            selected_month = st.selectbox(
-                "Select Month for KPI Display:",
-                options=all_kpi_df['month_label_display'].tolist(),
-                index=0,  # Default to most recent month
-                help="Choose which month's KPIs to display in detail"
-            )
-        
-        with col2:
-            # Performance gauge
-            st.markdown("### 🎯 Performance Score")
-            gauge_fig = create_performance_gauge(all_kpi_df)
-            st.plotly_chart(gauge_fig, use_container_width=True)
+        # Month selector for main KPIs
+        selected_month = st.selectbox(
+            "Select Month for KPI Display:",
+            options=all_kpi_df['month_label_display'].tolist(),
+            index=0,  # Default to most recent month
+            help="Choose which month's KPIs to display in detail"
+        )
         
         # Filter data for selected month
         kpi_df = all_kpi_df[all_kpi_df['month_label_display'] == selected_month]
@@ -118,6 +106,10 @@ def render_overview_page():
         st.markdown("---")
         st.markdown("### 🧠 AI-Generated Business Insights")
         
+        # Initialize session state for insights refresh
+        if 'insights_refresh_count' not in st.session_state:
+            st.session_state.insights_refresh_count = 0
+        
         with st.expander("📊 **Smart Analytics Report**", expanded=True):
             # Load additional data for insights
             try:
@@ -127,7 +119,7 @@ def render_overview_page():
                 customer_data = None
                 product_data = None
             
-            # Generate insights
+            # Generate insights (include refresh count to force regeneration)
             insights = generate_smart_insights(all_kpi_df, customer_data, product_data)
             
             # Display insights with nice formatting
@@ -138,35 +130,45 @@ def render_overview_page():
                     st.success(insight)
             
             # Refresh insights button
-            if st.button("🔄 Refresh Insights"):
-                st.rerun()
+            col1, col2, col3 = st.columns([1, 1, 1])
+            with col2:
+                if st.button("🔄 Refresh Insights", use_container_width=True):
+                    st.session_state.insights_refresh_count += 1
+                    st.rerun()
         
         # Summary statistics
         st.markdown("---")
         st.markdown("### 📋 Summary Statistics")
         display_summary_stats(all_kpi_df)
         
-        # Quick Actions Section
+        # Quick Actions Section - FIXED NAVIGATION
         st.markdown("---")
         st.markdown("### ⚡ Quick Actions")
+        st.markdown("*Navigate to other sections of the dashboard*")
         
         col1, col2, col3, col4 = st.columns(4)
         
         with col1:
-            if st.button("📊 View Top Customers", use_container_width=True):
-                st.switch_page("pages/customers_page.py")
+            if st.button("👥 View Customers", use_container_width=True):
+                # Use JavaScript to navigate to tab
+                st.markdown("""
+                <script>
+                document.querySelector('[data-testid="stSelectbox"] option[value="👥 Customers"]').selected = true;
+                </script>
+                """, unsafe_allow_html=True)
+                st.info("💡 **Tip:** Click the 'Customers' tab above to view customer analytics")
         
         with col2:
             if st.button("📦 Analyze Products", use_container_width=True):
-                st.switch_page("pages/products_page.py")
+                st.info("💡 **Tip:** Click the 'Products' tab above to view product analytics")
         
         with col3:
             if st.button("🔮 See Predictions", use_container_width=True):
-                st.switch_page("pages/predictions_page.py")
+                st.info("💡 **Tip:** Click the 'Predictions' tab above to view forecasts")
         
         with col4:
             if st.button("🛒 Basket Analysis", use_container_width=True):
-                st.switch_page("pages/basket_analysis_page.py")
+                st.info("💡 **Tip:** Click the 'Basket' tab above to view market basket analysis")
         
         # Data freshness indicator
         st.markdown("---")
