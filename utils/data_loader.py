@@ -324,3 +324,124 @@ def get_products_for_dropdown(category=None):
     ORDER BY total_revenue_all_time DESC
     """
     return run_query(query)
+
+def load_basket_analysis():
+    """Load basket analysis data from BigQuery."""
+    query = """
+    SELECT 
+        product_a,
+        product_b,
+        product_a_name,
+        product_b_name,
+        category_relationship,
+        customers_buying_both,
+        customers_buying_a_total,
+        customers_buying_b_total,
+        support_pct,
+        confidence_a_to_b_pct,
+        confidence_b_to_a_pct,
+        lift,
+        association_strength,
+        avg_qty_a_in_bundle,
+        avg_qty_b_in_bundle,
+        avg_bundle_revenue,
+        bundle_score,
+        bundle_name_suggestion,
+        sample_customers
+    FROM `ml-goldman-hotels-vit-vertex.sales_analytics.basket_analysis`
+    ORDER BY lift DESC, bundle_score DESC
+    """
+    return run_query(query)
+
+def load_top_bundles(limit=10):
+    """Load top bundle opportunities by bundle score."""
+    query = f"""
+    SELECT 
+        product_a,
+        product_b,
+        product_a_name,
+        product_b_name,
+        bundle_name_suggestion,
+        bundle_score,
+        lift,
+        support_pct,
+        confidence_a_to_b_pct,
+        avg_bundle_revenue,
+        association_strength
+    FROM `ml-goldman-hotels-vit-vertex.sales_analytics.basket_analysis`
+    WHERE bundle_score >= 50
+    ORDER BY bundle_score DESC, lift DESC
+    LIMIT {limit}
+    """
+    return run_query(query)
+
+def load_cross_sell_recommendations(product_code):
+    """Load cross-sell recommendations for a specific product."""
+    query = f"""
+    SELECT 
+        CASE 
+            WHEN product_a = '{product_code}' THEN product_b
+            WHEN product_b = '{product_code}' THEN product_a
+        END as recommended_product,
+        CASE 
+            WHEN product_a = '{product_code}' THEN product_b_name
+            WHEN product_b = '{product_code}' THEN product_a_name
+        END as recommended_product_name,
+        CASE 
+            WHEN product_a = '{product_code}' THEN confidence_a_to_b_pct
+            WHEN product_b = '{product_code}' THEN confidence_b_to_a_pct
+        END as confidence_pct,
+        lift,
+        support_pct,
+        bundle_score,
+        avg_bundle_revenue,
+        bundle_name_suggestion
+    FROM `ml-goldman-hotels-vit-vertex.sales_analytics.basket_analysis`
+    WHERE product_a = '{product_code}' OR product_b = '{product_code}'
+    ORDER BY confidence_pct DESC, lift DESC
+    """
+    return run_query(query)
+
+def get_category_cross_sell_stats():
+    """Get cross-selling statistics by category relationships."""
+    query = """
+    SELECT 
+        category_relationship,
+        COUNT(*) as pair_count,
+        AVG(lift) as avg_lift,
+        AVG(support_pct) as avg_support,
+        AVG(bundle_score) as avg_bundle_score,
+        AVG(avg_bundle_revenue) as avg_revenue
+    FROM `ml-goldman-hotels-vit-vertex.sales_analytics.basket_analysis`
+    GROUP BY category_relationship
+    ORDER BY avg_lift DESC
+    """
+    return run_query(query)
+
+def get_association_strength_distribution():
+    """Get distribution of association strengths."""
+    query = """
+    SELECT 
+        association_strength,
+        COUNT(*) as count,
+        AVG(lift) as avg_lift,
+        AVG(bundle_score) as avg_bundle_score
+    FROM `ml-goldman-hotels-vit-vertex.sales_analytics.basket_analysis`
+    GROUP BY association_strength
+    ORDER BY avg_lift DESC
+    """
+    return run_query(query)
+
+def load_product_list_for_basket():
+    """Load product list for basket analysis selections."""
+    query = """
+    SELECT DISTINCT 
+        Product_code,
+        Product_name,
+        product_type
+    FROM `ml-goldman-hotels-vit-vertex.sales_forecasting.features_history`
+    WHERE Product_name IS NOT NULL 
+      AND Product_name != 'Unknown Product'
+    ORDER BY Product_name
+    """
+    return run_query(query)
